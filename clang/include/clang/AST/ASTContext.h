@@ -956,6 +956,8 @@ public:
   /// Erase the attributes corresponding to the given statement.
   void eraseStmtAttrs(const Stmt *S);
 
+  bool hasStmtAttrs(const Stmt *S) const;
+
   /// If this variable is an instantiated static data member of a
   /// class template specialization, returns the templated static data member
   /// from which it was instantiated.

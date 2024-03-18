@@ -1466,6 +1466,10 @@ void ASTContext::eraseStmtAttrs(const Stmt *S) {
   eraseAttrs(StmtAttrs, S);
 }
 
+bool ASTContext::hasStmtAttrs(const Stmt *S) const {
+  return StmtAttrs.contains(S);
+}
+
 // FIXME: Remove ?
 MemberSpecializationInfo *
 ASTContext::getInstantiatedFromStaticDataMember(const VarDecl *Var) {
