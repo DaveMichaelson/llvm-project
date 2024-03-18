@@ -4505,3 +4505,9 @@ def CountedBy : InheritableAttr {
       void setCountedByFieldLoc(SourceRange Loc) { CountedByFieldLoc = Loc; }
   }];
 }
+
+def AttachMetadata : StmtAttr {
+  let Spellings = [Clang<"metadata">];
+  let Args = [StringArgument<"UserMetadata">];
+  let Documentation = [Undocumented];
+}

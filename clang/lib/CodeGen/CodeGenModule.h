@@ -607,6 +607,8 @@ private:
   std::pair<std::unique_ptr<CodeGenFunction>, const TopLevelStmtDecl *>
       GlobalTopLevelStmtBlockInFlight;
 
+  llvm::DenseMap<AttachMetadataAttr *, llvm::MDNode *> UserMetadataNode;
+
 public:
   CodeGenModule(ASTContext &C, IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS,
                 const HeaderSearchOptions &headersearchopts,
@@ -1580,6 +1582,11 @@ public:
                      llvm::Constant *AssociatedData = nullptr);
   void AddGlobalDtor(llvm::Function *Dtor, int Priority = 65535,
                      bool IsDtorAttrFunc = false);
+
+  llvm::MDNode &getOrCreateNodeForUserMetadata(
+                              AttachMetadataAttr *UserMetadata);
+  void addUserMetadataToValue(llvm::Value *Value, 
+                              AttachMetadataAttr *UserMetadata);
 
 private:
   llvm::Constant *GetOrCreateLLVMFunction(

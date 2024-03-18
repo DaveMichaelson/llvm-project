@@ -7604,3 +7604,20 @@ void CodeGenModule::moveLazyEmissionStates(CodeGenModule *NewBuilder) {
 
   NewBuilder->ABI->MangleCtx = std::move(ABI->MangleCtx);
 }
+
+llvm::MDNode &CodeGenModule::getOrCreateNodeForUserMetadata(
+      AttachMetadataAttr *UserMetadata) {
+  llvm::MDNode *&Result = UserMetadataNode[UserMetadata];
+  if (!Result) {
+    Result = llvm::MDNode::get(getLLVMContext(), 
+      llvm::MDString::get(getLLVMContext(), UserMetadata->getUserMetadata()));
+  }
+
+  return *Result;
+}
+
+
+void CodeGenModule::addUserMetadataToValue(llvm::Value *Value, 
+    AttachMetadataAttr *UserMetadata) {
+  Value->addUserMetadata(getOrCreateNodeForUserMetadata(UserMetadata));
+}

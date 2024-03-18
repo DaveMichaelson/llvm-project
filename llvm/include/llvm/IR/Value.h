@@ -825,6 +825,8 @@ public:
   /// Reverse the use-list.
   void reverseUseList();
 
+  void addUserMetadata(MDNode &MD);
+
 private:
   /// Merge two lists together.
   ///
