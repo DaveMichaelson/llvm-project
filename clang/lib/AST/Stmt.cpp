@@ -1455,7 +1455,7 @@ AttrVec &Stmt::getAttrs(ASTContext &Context) {
 }
 
 const AttrVec &Stmt::getAttrs(ASTContext &Context) const {
-  assert(hasAttrs() && "No attrs to get!");
+  assert(hasAttrs(Context) && "No attrs to get!");
   return Context.getStmtAttrs(this);
 }
 
