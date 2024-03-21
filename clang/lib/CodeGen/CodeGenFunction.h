@@ -270,6 +270,7 @@ public:
   typedef std::pair<llvm::Value *, llvm::Value *> ComplexPairTy;
   LoopInfoStack LoopStack;
   CGBuilderTy Builder;
+  StmtAttrsStack StmtAttrs;
 
   // Stores variables for which we can't generate correct lifetime markers
   // because of jumps.

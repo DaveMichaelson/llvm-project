@@ -60,10 +60,18 @@ void CodeGenFunction::EmitStopPoint(const Stmt *S) {
 void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   assert(S && "Null statement?");
   PGO.setCurrentStmt(S);
+  bool HasAttrs = S->hasAttrs();
+  if (HasAttrs) {
+    StmtAttrs.push(S);
+  }
 
   // These statements have their own debug info handling.
-  if (EmitSimpleStmt(S, Attrs))
+  if (EmitSimpleStmt(S, Attrs)) {
+    if (HasAttrs) {
+      StmtAttrs.pop();
+    }
     return;
+  }
 
   // Check if we are generating unreachable code.
   if (!HaveInsertPoint()) {
@@ -76,6 +84,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
       // Verify that any decl statements were handled as simple, they may be in
       // scope of subsequent reachable statements.
       assert(!isa<DeclStmt>(*S) && "Unexpected DeclStmt!");
+      if (HasAttrs) {
+        StmtAttrs.pop();
+      }
       return;
     }
 
@@ -91,6 +102,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   if (getLangOpts().OpenMP && getLangOpts().OpenMPSimd) {
     if (const auto *D = dyn_cast<OMPExecutableDirective>(S)) {
       EmitSimpleOMPExecutableDirective(*D);
+      if (HasAttrs) {
+        StmtAttrs.pop();
+      }
       return;
     }
   }
@@ -442,6 +456,10 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OpenACCComputeConstructClass:
     EmitOpenACCComputeConstruct(cast<OpenACCComputeConstruct>(*S));
     break;
+  }
+
+  if (HasAttrs) {
+    StmtAttrs.pop();
   }
 }
 
