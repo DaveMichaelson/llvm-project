@@ -7,11 +7,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "CGStmtAttrs.h"
+#include "clang/AST/Stmt.h"
+#include "CodeGenModule.h"
 
 using namespace clang::CodeGen;
 using namespace llvm;
 
-void StmtAttrsStack::push(Stmt *S) {
+void StmtAttrsStack::push(const Stmt *S) {
   stack.push_back(&S->getAttrs(CGM.getContext()));
 }
 
@@ -24,11 +26,11 @@ void StmtAttrsStack::clear_back() {
   stack.push_back(nullptr);
 }
 
-void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) {
-  for (typename llvm::SmallVector<AttrVec *, 10>::iterator Attrs = stack.begin(),
+void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) const {
+  for (typename llvm::SmallVector<const AttrVec *, 10>::const_iterator Attrs = stack.begin(),
                                                       AttrsEnd = stack.end();
       Attrs != AttrsEnd; Attrs++) {
-    for (typename AttrVec::iterator A = (*Attrs)->begin(), AEnd = (*Attrs)->end();
+    for (typename AttrVec::const_iterator A = (*Attrs)->begin(), AEnd = (*Attrs)->end();
         A != AEnd; A++) {
       Attr *attr = *A;
       if (!attr)
@@ -40,5 +42,5 @@ void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) {
 }
 
 void StmtAttrsStack::InsertHelper(llvm::Instruction *I) const {
-  addAttrsAsMD(I);
+  addAttrsAsMD(cast<llvm::Value>(I));
 }

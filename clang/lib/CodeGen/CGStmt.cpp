@@ -60,7 +60,7 @@ void CodeGenFunction::EmitStopPoint(const Stmt *S) {
 void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   assert(S && "Null statement?");
   PGO.setCurrentStmt(S);
-  bool HasAttrs = S->hasAttrs();
+  bool HasAttrs = S->hasAttrs(getContext());
   if (HasAttrs) {
     StmtAttrs.push(S);
   }

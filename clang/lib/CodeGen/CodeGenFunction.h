@@ -17,6 +17,7 @@
 #include "CGDebugInfo.h"
 #include "CGLoopInfo.h"
 #include "CGValue.h"
+#include "CGStmtAttrs.h"
 #include "CodeGenModule.h"
 #include "CodeGenPGO.h"
 #include "EHScopeStack.h"

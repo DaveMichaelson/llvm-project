@@ -10,35 +10,37 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_LIB_CODEGEN_CGLOOPINFO_H
-#define LLVM_CLANG_LIB_CODEGEN_CGLOOPINFO_H
+#ifndef LLVM_CLANG_LIB_CODEGEN_CGSTMTATTRS_H
+#define LLVM_CLANG_LIB_CODEGEN_CGSTMTATTRS_H
 
-#include "CodeGenModule.h"
 #include "clang/AST/AttrIterator.h"
-#include "clang/AST/Stmt.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/Value.h"
 
+namespace llvm {
+class Instruction;
+class Value;
+class Stmt;
+}
 
 namespace clang {
-class Attr;
-class ASTContext;
-class CodeGenOptions;
+class Stmt;
+
 namespace CodeGen {
+class CodeGenModule;
 
 class StmtAttrsStack {
   StmtAttrsStack(const StmtAttrsStack &) = delete;
   void operator=(const StmtAttrsStack &) = delete;
 public:
   StmtAttrsStack(CodeGenModule &CGM) : CGM(CGM) {}
-  void push(Stmt *S);
+  void push(const Stmt *S);
   void pop();
   void clear_back();
-  void addAttrsAsMD(llvm::Value *Value);
+  void addAttrsAsMD(llvm::Value *Value) const;
   void InsertHelper(llvm::Instruction *I) const;
 private:
   CodeGenModule &CGM;
-  llvm::SmallVector<AttrVec *, 10> stack;
+  llvm::SmallVector<const AttrVec *, 10> stack;
 };
 
 } // end namespace CodeGen
