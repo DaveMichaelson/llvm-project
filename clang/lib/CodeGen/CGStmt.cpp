@@ -65,12 +65,10 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
     StmtAttrs.push(S);
   }
 
+  do {
   // These statements have their own debug info handling.
   if (EmitSimpleStmt(S, Attrs)) {
-    if (HasAttrs) {
-      StmtAttrs.pop();
-    }
-    return;
+    break;
   }
 
   // Check if we are generating unreachable code.
@@ -84,10 +82,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
       // Verify that any decl statements were handled as simple, they may be in
       // scope of subsequent reachable statements.
       assert(!isa<DeclStmt>(*S) && "Unexpected DeclStmt!");
-      if (HasAttrs) {
-        StmtAttrs.pop();
-      }
-      return;
+      break;
     }
 
     // Otherwise, make a new block to hold the code.
@@ -102,10 +97,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   if (getLangOpts().OpenMP && getLangOpts().OpenMPSimd) {
     if (const auto *D = dyn_cast<OMPExecutableDirective>(S)) {
       EmitSimpleOMPExecutableDirective(*D);
-      if (HasAttrs) {
-        StmtAttrs.pop();
-      }
-      return;
+      break;
     }
   }
 
@@ -458,6 +450,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
     break;
   }
 
+  } while (false);
   if (HasAttrs) {
     StmtAttrs.pop();
   }

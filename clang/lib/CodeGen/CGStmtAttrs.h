@@ -1,4 +1,4 @@
-//===---- CGStmtAttrs.h - LLVM CodeGen for statement attributes -*- C++ -*---------===//
+//===---- CGStmtAttrs.h - LLVM CodeGen for statement attributes -*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -40,7 +40,7 @@ public:
   void InsertHelper(llvm::Instruction *I) const;
 private:
   CodeGenModule &CGM;
-  llvm::SmallVector<const AttrVec *, 10> stack;
+  llvm::SmallVector<const AttrVec *, 32> stack;
 };
 
 } // end namespace CodeGen

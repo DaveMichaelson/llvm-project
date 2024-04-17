@@ -323,6 +323,9 @@ public:
                     llvm::BasicBlock *BB,
                     llvm::BasicBlock::iterator InsertPt) const;
 
+  void AttrStackPush(const Stmt *S);
+  void AttrStackPop();
+
   /// CurFuncDecl - Holds the Decl for the current outermost
   /// non-closure context.
   const Decl *CurFuncDecl = nullptr;
