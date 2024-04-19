@@ -435,6 +435,8 @@ private:
   // most up to date ValueDecl that will have all the inherited annotations.
   llvm::DenseMap<StringRef, const ValueDecl *> DeferredAnnotations;
 
+  llvm::DenseSet<const RecordDecl *> RecordAnnotations;
+
   /// Map used to get unique annotation strings.
   llvm::StringMap<llvm::Constant*> AnnotationStrings;
 
@@ -1345,9 +1347,16 @@ public:
                                    const AnnotateAttr *AA,
                                    SourceLocation L);
 
+  llvm::Constant *EmitRecordAnnotateAttr(const RecordDecl *D,
+                                         const AnnotateAttr *AA);
+
   /// Add global annotations that are set on D, for the global GV. Those
   /// annotations are emitted during finalization of the LLVM code.
   void AddGlobalAnnotations(const ValueDecl *D, llvm::GlobalValue *GV);
+
+  void AddRecordAnnotations(const RecordDecl *D);
+
+  void DeferRecordAnnotations(const RecordDecl *D);
 
   bool isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
                           SourceLocation Loc) const;
