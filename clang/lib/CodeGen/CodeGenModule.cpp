@@ -3293,6 +3293,8 @@ llvm::Constant *CodeGenModule::EmitAnnotateAttr(llvm::GlobalValue *GV,
 llvm::Constant *CodeGenModule::EmitRecordAnnotateAttr(const RecordDecl *D,
                                                       const AnnotateAttr *AA) {
   llvm::StructType *Ty = Types.ConvertRecordDeclType(D);
+  assert(Ty->hasName() && "no name");
+
   llvm::Constant *Name = EmitAnnotationString(Ty->getName()),
                  *AnnoRD = EmitAnnotationString(AA->getAnnotation()),
                  *UnitD = EmitAnnotationUnit(D->getLocation()),
