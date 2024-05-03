@@ -44,3 +44,17 @@ void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) const {
 void StmtAttrsStack::InsertHelper(llvm::Instruction *I) const {
   addAttrsAsMD(cast<llvm::Value>(I));
 }
+
+StmtAttrsStackManager::StmtAttrsStackManager(StmtAttrsStack &Stack, 
+                                             const Stmt *S, bool HasAttrs) : 
+                                             Stack(Stack), HasAttrs(HasAttrs) {
+  if (HasAttrs) {
+    Stack.push(S);
+  }
+}
+
+StmtAttrsStackManager::~StmtAttrsStackManager() {
+  if (HasAttrs) {
+    Stack.pop();
+  }
+}

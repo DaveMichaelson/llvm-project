@@ -60,15 +60,11 @@ void CodeGenFunction::EmitStopPoint(const Stmt *S) {
 void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   assert(S && "Null statement?");
   PGO.setCurrentStmt(S);
-  bool HasAttrs = S->hasAttrs(getContext());
-  if (HasAttrs) {
-    StmtAttrs.push(S);
-  }
-
-  do {
+  StmtAttrsStackManager StackManager(StmtAttrs, S, S->hasAttrs(getContext()));
+  
   // These statements have their own debug info handling.
   if (EmitSimpleStmt(S, Attrs)) {
-    break;
+    return;
   }
 
   // Check if we are generating unreachable code.
@@ -82,7 +78,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
       // Verify that any decl statements were handled as simple, they may be in
       // scope of subsequent reachable statements.
       assert(!isa<DeclStmt>(*S) && "Unexpected DeclStmt!");
-      break;
+      return;
     }
 
     // Otherwise, make a new block to hold the code.
@@ -97,7 +93,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   if (getLangOpts().OpenMP && getLangOpts().OpenMPSimd) {
     if (const auto *D = dyn_cast<OMPExecutableDirective>(S)) {
       EmitSimpleOMPExecutableDirective(*D);
-      break;
+      return;
     }
   }
 
@@ -152,7 +148,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
       outgoing->eraseFromParent();
       Builder.ClearInsertionPoint();
     }
-    break;
+    return;
   }
 
   case Stmt::IndirectGotoStmtClass:
@@ -448,11 +444,6 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   case Stmt::OpenACCComputeConstructClass:
     EmitOpenACCComputeConstruct(cast<OpenACCComputeConstruct>(*S));
     break;
-  }
-
-  } while (false);
-  if (HasAttrs) {
-    StmtAttrs.pop();
   }
 }
 

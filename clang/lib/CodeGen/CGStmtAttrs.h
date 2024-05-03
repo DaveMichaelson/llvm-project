@@ -43,6 +43,14 @@ private:
   llvm::SmallVector<const AttrVec *, 32> stack;
 };
 
+class StmtAttrsStackManager {
+  StmtAttrsStack &Stack;
+  bool HasAttrs;
+public:
+  StmtAttrsStackManager(StmtAttrsStack &Stack, const Stmt *S, bool HasAttrs);
+  ~StmtAttrsStackManager();
+};
+
 } // end namespace CodeGen
 } // end namespace clang
 
