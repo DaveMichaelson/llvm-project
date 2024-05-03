@@ -63,9 +63,8 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
   StmtAttrsStackManager StackManager(StmtAttrs, S, S->hasAttrs(getContext()));
   
   // These statements have their own debug info handling.
-  if (EmitSimpleStmt(S, Attrs)) {
+  if (EmitSimpleStmt(S, Attrs))
     return;
-  }
 
   // Check if we are generating unreachable code.
   if (!HaveInsertPoint()) {
@@ -148,7 +147,7 @@ void CodeGenFunction::EmitStmt(const Stmt *S, ArrayRef<const Attr *> Attrs) {
       outgoing->eraseFromParent();
       Builder.ClearInsertionPoint();
     }
-    return;
+    break;
   }
 
   case Stmt::IndirectGotoStmtClass:
