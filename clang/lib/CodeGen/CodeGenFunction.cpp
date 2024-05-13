@@ -69,7 +69,7 @@ static bool shouldEmitLifetimeMarkers(const CodeGenOptions &CGOpts,
 CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, bool suppressNewContext)
     : CodeGenTypeCache(cgm), CGM(cgm), Target(cgm.getTarget()),
       Builder(cgm, cgm.getModule().getContext(), llvm::ConstantFolder(),
-              CGBuilderInserterTy(this)),
+              CGBuilderInserterTy(this)), StmtAttrs(cgm),
       SanOpts(CGM.getLangOpts().Sanitize), CurFPFeatures(CGM.getLangOpts()),
       DebugInfo(CGM.getModuleDebugInfo()), PGO(cgm),
       ShouldEmitLifetimeMarkers(
@@ -2495,6 +2495,7 @@ void CodeGenFunction::InsertHelper(llvm::Instruction *I,
                                    llvm::BasicBlock *BB,
                                    llvm::BasicBlock::iterator InsertPt) const {
   LoopStack.InsertHelper(I);
+  StmtAttrs.InsertHelper(I);
   if (IsSanitizerScope)
     CGM.getSanitizerMetadata()->disableSanitizerForInstruction(I);
 }
@@ -2505,6 +2506,14 @@ void CGBuilderInserter::InsertHelper(
   llvm::IRBuilderDefaultInserter::InsertHelper(I, Name, BB, InsertPt);
   if (CGF)
     CGF->InsertHelper(I, Name, BB, InsertPt);
+}
+
+void CodeGenFunction::AttrStackPush(const Stmt *S) {
+  StmtAttrs.push(S);
+}
+
+void CodeGenFunction::AttrStackPop() {
+  StmtAttrs.pop();
 }
 
 // Emits an error if we don't have a valid set of target features for the

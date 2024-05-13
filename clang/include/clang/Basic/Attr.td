@@ -3914,3 +3914,10 @@ def Error : InheritableAttr {
   let Subjects = SubjectList<[Function], ErrorDiag>;
   let Documentation = [ErrorAttrDocs];
 }
+
+def AttachMetadata : StmtAttr {
+  let Spellings = [Clang<"metadata">];
+  let Subjects = SubjectList<[Stmt], ErrorDiag, "statements">;
+  let Args = [StringArgument<"UserMetadata">];
+  let Documentation = [Undocumented];
+}

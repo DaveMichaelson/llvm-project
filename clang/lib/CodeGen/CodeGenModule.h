@@ -397,6 +397,8 @@ private:
   /// Global annotations.
   std::vector<llvm::Constant*> Annotations;
 
+  llvm::DenseSet<const RecordDecl *> RecordAnnotations;
+  
   /// Map used to get unique annotation strings.
   llvm::StringMap<llvm::Constant*> AnnotationStrings;
 
@@ -560,6 +562,8 @@ private:
   MetadataTypeMap MetadataIdMap;
   MetadataTypeMap VirtualMetadataIdMap;
   MetadataTypeMap GeneralizedMetadataIdMap;
+
+  llvm::DenseMap<AttachMetadataAttr *, llvm::MDNode *> UserMetadataNode;
 
 public:
   CodeGenModule(ASTContext &C, const HeaderSearchOptions &headersearchopts,
@@ -1280,9 +1284,16 @@ public:
                                    const AnnotateAttr *AA,
                                    SourceLocation L);
 
+  llvm::Constant *EmitRecordAnnotateAttr(const RecordDecl *D,
+                                         const AnnotateAttr *AA);
+
   /// Add global annotations that are set on D, for the global GV. Those
   /// annotations are emitted during finalization of the LLVM code.
   void AddGlobalAnnotations(const ValueDecl *D, llvm::GlobalValue *GV);
+
+  void AddRecordAnnotations(const RecordDecl *D);
+
+  void DeferRecordAnnotations(const RecordDecl *D);
 
   bool isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
                           SourceLocation Loc) const;
@@ -1452,6 +1463,11 @@ public:
   void printPostfixForExternalizedDecl(llvm::raw_ostream &OS,
                                        const Decl *D) const;
 
+  llvm::MDNode &getOrCreateNodeForUserMetadata(
+                              AttachMetadataAttr *UserMetadata);
+  void addUserMetadataToValue(llvm::Value *Value, 
+                              AttachMetadataAttr *UserMetadata);
+                              
 private:
   llvm::Constant *GetOrCreateLLVMFunction(
       StringRef MangledName, llvm::Type *Ty, GlobalDecl D, bool ForVTable,

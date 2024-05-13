@@ -1423,3 +1423,45 @@ bool CapturedStmt::capturesVariable(const VarDecl *Var) const {
 
   return false;
 }
+
+bool Stmt::hasAttrs(const ASTContext &Context) const {
+  return Context.hasStmtAttrs(this);
+}
+
+void Stmt::setAttrs(ASTContext &Context, const AttrVec& Attrs) {
+  AttrVec &AttrBlank = Context.getStmtAttrs(this);
+  assert(AttrBlank.empty() && "Stmt already contains attrs.");
+
+  AttrBlank = Attrs;
+}
+
+AttrVec &Stmt::getAttrs(ASTContext &Context) {
+  return const_cast<AttrVec&>(const_cast<const Stmt*>(this)->getAttrs(Context));
+}
+
+const AttrVec &Stmt::getAttrs(ASTContext &Context) const {
+  assert(hasAttrs(Context) && "No attrs to get!");
+  return Context.getStmtAttrs(this);
+}
+
+void Stmt::dropAttrs(ASTContext &Context) {
+  Context.eraseStmtAttrs(this);
+}
+
+void Stmt::addAttr(ASTContext &Context, Attr *A) {
+  AttrVec &Attrs = getAttrs(Context);
+  if (!A->isInherited()) {
+    Attrs.push_back(A);
+    return;
+  }
+
+  // Attribute inheritance is processed after attribute parsing. To keep the
+  // order as in the source code, add inherited attributes before non-inherited
+  // ones.
+  auto I = Attrs.begin(), E = Attrs.end();
+  for (; I != E; ++I) {
+    if (!(*I)->isInherited())
+      break;
+  }
+  Attrs.insert(I, A);
+}

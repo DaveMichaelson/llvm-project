@@ -438,6 +438,12 @@ class ASTContext : public RefCountedBase<ASTContext> {
   /// Declaration for the CUDA cudaConfigureCall function.
   FunctionDecl *cudaConfigureCallDecl = nullptr;
 
+  /// Keeps track of all statement attributes.
+  ///
+  /// Since so few stmts have attrs, we keep them in a hash map instead of
+  /// wasting space in the Stmt class.
+  llvm::DenseMap<const Stmt*, AttrVec*> StmtAttrs;
+
   /// Keeps track of all declaration attributes.
   ///
   /// Since so few decls have attrs, we keep them in a hash map instead of
@@ -933,6 +939,12 @@ private:
     }
   };
 
+  template<class Node>
+  void eraseAttrs(llvm::DenseMap<const Node*, AttrVec*> attrs, const Node *N);
+
+  template<class Node>
+  void clearAttrs(llvm::DenseMap<const Node*, AttrVec*> attrs);
+
 public:
   comments::CommandTraits &getCommentCommandTraits() const {
     return CommentCommandTraits;
@@ -943,6 +955,14 @@ public:
 
   /// Erase the attributes corresponding to the given declaration.
   void eraseDeclAttrs(const Decl *D);
+
+  /// Retrieve the attributes for the given statement.
+  AttrVec& getStmtAttrs(const Stmt *S);
+
+  /// Erase the attributes corresponding to the given statement.
+  void eraseStmtAttrs(const Stmt *S);
+
+  bool hasStmtAttrs(const Stmt *S) const;
 
   /// If this variable is an instantiated static data member of a
   /// class template specialization, returns the templated static data member

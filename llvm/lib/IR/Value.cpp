@@ -1036,6 +1036,10 @@ bool Value::isTransitiveUsedByMetadataOnly() const {
   return true;
 }
 
+void Value::addUserMetadata(MDNode &MD) {
+  addMetadata(LLVMContext::MD_user_metadata, MD);
+}
+
 //===----------------------------------------------------------------------===//
 //                             ValueHandleBase Class
 //===----------------------------------------------------------------------===//

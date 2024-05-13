@@ -13,6 +13,7 @@
 #include "CGCXXABI.h"
 #include "CGCleanup.h"
 #include "CGDebugInfo.h"
+#include "CGExprEmitter.h"
 #include "CGObjCRuntime.h"
 #include "CGOpenMPRuntime.h"
 #include "CodeGenFunction.h"
@@ -217,15 +218,14 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
 }
 
 class ScalarExprEmitter
-  : public StmtVisitor<ScalarExprEmitter, Value*> {
-  CodeGenFunction &CGF;
+  : public ExprEmitter, public StmtVisitor<ScalarExprEmitter, Value*> {
   CGBuilderTy &Builder;
   bool IgnoreResultAssign;
   llvm::LLVMContext &VMContext;
 public:
 
-  ScalarExprEmitter(CodeGenFunction &cgf, bool ira=false)
-    : CGF(cgf), Builder(CGF.Builder), IgnoreResultAssign(ira),
+  ScalarExprEmitter(CodeGenFunction &cgf, const Expr *E=nullptr, bool ira=false)
+      : ExprEmitter(cgf, E), Builder(CGF.Builder), IgnoreResultAssign(ira),
       VMContext(cgf.getLLVMContext()) {
   }
 
@@ -4862,7 +4862,7 @@ Value *CodeGenFunction::EmitScalarExpr(const Expr *E, bool IgnoreResultAssign) {
   assert(E && hasScalarEvaluationKind(E->getType()) &&
          "Invalid scalar expression to emit");
 
-  return ScalarExprEmitter(*this, IgnoreResultAssign)
+  return ScalarExprEmitter(*this, E, IgnoreResultAssign)
       .Visit(const_cast<Expr *>(E));
 }
 
@@ -4888,11 +4888,10 @@ Value *CodeGenFunction::EmitComplexToScalarConversion(ComplexPairTy Src,
       .EmitComplexToScalarConversion(Src, SrcTy, DstTy, Loc);
 }
 
-
 llvm::Value *CodeGenFunction::
 EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
                         bool isInc, bool isPre) {
-  return ScalarExprEmitter(*this).EmitScalarPrePostIncDec(E, LV, isInc, isPre);
+  return ScalarExprEmitter(*this, E).EmitScalarPrePostIncDec(E, LV, isInc, isPre);
 }
 
 LValue CodeGenFunction::EmitObjCIsaExpr(const ObjCIsaExpr *E) {
