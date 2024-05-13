@@ -12,6 +12,7 @@
 
 #include "CGCXXABI.h"
 #include "CGObjCRuntime.h"
+#include "CGExprEmitter.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "ConstantEmitter.h"
@@ -34,8 +35,7 @@ using namespace CodeGen;
 //===----------------------------------------------------------------------===//
 
 namespace  {
-class AggExprEmitter : public StmtVisitor<AggExprEmitter> {
-  CodeGenFunction &CGF;
+class AggExprEmitter : public ExprEmitter, public StmtVisitor<AggExprEmitter> {
   CGBuilderTy &Builder;
   AggValueSlot Dest;
   bool IsResultUnused;
@@ -59,8 +59,9 @@ class AggExprEmitter : public StmtVisitor<AggExprEmitter> {
                            llvm::function_ref<RValue(ReturnValueSlot)> Fn);
 
 public:
-  AggExprEmitter(CodeGenFunction &cgf, AggValueSlot Dest, bool IsResultUnused)
-    : CGF(cgf), Builder(CGF.Builder), Dest(Dest),
+  AggExprEmitter(CodeGenFunction &cgf, AggValueSlot Dest, bool IsResultUnused, 
+    const Expr *E=nullptr)
+    : ExprEmitter(cgf, E), Builder(CGF.Builder), Dest(Dest),
     IsResultUnused(IsResultUnused) { }
 
   //===--------------------------------------------------------------------===//
@@ -1879,7 +1880,7 @@ void AggExprEmitter::VisitArrayInitLoopExpr(const ArrayInitLoopExpr *E,
           elementLV, CGF, AggValueSlot::IsDestructed,
           AggValueSlot::DoesNotNeedGCBarriers, AggValueSlot::IsNotAliased,
           AggValueSlot::DoesNotOverlap);
-      AggExprEmitter(CGF, elementSlot, false)
+      AggExprEmitter(CGF, elementSlot, false, E)
           .VisitArrayInitLoopExpr(InnerLoop, outerBegin);
     } else
       EmitInitializationToLValue(E->getSubExpr(), elementLV);
@@ -2035,7 +2036,7 @@ void CodeGenFunction::EmitAggExpr(const Expr *E, AggValueSlot Slot) {
   // Optimize the slot if possible.
   CheckAggExprForMemSetUse(Slot, E, *this);
 
-  AggExprEmitter(*this, Slot, Slot.isIgnored()).Visit(const_cast<Expr*>(E));
+  AggExprEmitter(*this, Slot, Slot.isIgnored(), E).Visit(const_cast<Expr*>(E));
 }
 
 LValue CodeGenFunction::EmitAggExprToLValue(const Expr *E) {

@@ -444,6 +444,7 @@ void CodeGenModule::checkAliases() {
 void CodeGenModule::clear() {
   DeferredDeclsToEmit.clear();
   EmittedDeferredDecls.clear();
+  RecordAnnotations.clear();
   if (OpenMPRuntime)
     OpenMPRuntime->clear();
 }
@@ -2831,6 +2832,10 @@ void CodeGenModule::EmitVTablesOpportunistically() {
 }
 
 void CodeGenModule::EmitGlobalAnnotations() {
+  for (auto RD : RecordAnnotations) {
+    AddRecordAnnotations(RD);
+  }
+
   if (Annotations.empty())
     return;
 
@@ -2937,12 +2942,42 @@ llvm::Constant *CodeGenModule::EmitAnnotateAttr(llvm::GlobalValue *GV,
   return llvm::ConstantStruct::getAnon(Fields);
 }
 
+llvm::Constant *CodeGenModule::EmitRecordAnnotateAttr(const RecordDecl *D,
+                                                      const AnnotateAttr *AA) {
+  llvm::StructType *Ty = Types.ConvertRecordDeclType(D);
+  assert(Ty->hasName() && "no name");
+
+  llvm::Constant *Name = EmitAnnotationString(Ty->getName()),
+                 *AnnoRD = EmitAnnotationString(AA->getAnnotation()),
+                 *UnitD = EmitAnnotationUnit(D->getLocation()),
+                 *LineNoCst = EmitAnnotationLineNo(D->getLocation()),
+                 *Args = EmitAnnotationArgs(AA);
+  llvm::Constant *Fields[] = {
+    Name, AnnoRD, UnitD, LineNoCst, Args,
+  };
+  return llvm::ConstantStruct::getAnon(Fields);
+}
+
 void CodeGenModule::AddGlobalAnnotations(const ValueDecl *D,
                                          llvm::GlobalValue *GV) {
   assert(D->hasAttr<AnnotateAttr>() && "no annotate attribute");
   // Get the struct elements for these annotations.
   for (const auto *I : D->specific_attrs<AnnotateAttr>())
     Annotations.push_back(EmitAnnotateAttr(GV, I, D->getLocation()));
+}
+
+void CodeGenModule::AddRecordAnnotations(const RecordDecl *D) {
+  assert(D->hasAttr<AnnotateAttr>() && "no annotate attribute");
+  // Get the struct elements for these annotations.
+  for (const auto *I : D->specific_attrs<AnnotateAttr>()) {
+    Annotations.push_back(EmitRecordAnnotateAttr(D, I));
+  }
+}
+
+void CodeGenModule::DeferRecordAnnotations(const RecordDecl *D) {
+  if (!D->hasAttr<AnnotateAttr>())
+    return;
+  RecordAnnotations.insert(D);
 }
 
 bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
@@ -6330,6 +6365,7 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
   } [[fallthrough]];
   case Decl::CXXRecord: {
     CXXRecordDecl *CRD = cast<CXXRecordDecl>(D);
+    DeferRecordAnnotations(CRD);
     if (CGDebugInfo *DI = getModuleDebugInfo()) {
       if (CRD->hasDefinition())
         DI->EmitAndRetainType(getContext().getRecordType(cast<RecordDecl>(D)));
@@ -6558,6 +6594,7 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
     break;
 
   case Decl::Record:
+    DeferRecordAnnotations(cast<RecordDecl>(D));
     if (CGDebugInfo *DI = getModuleDebugInfo())
       if (cast<RecordDecl>(D)->getDefinition())
         DI->EmitAndRetainType(getContext().getRecordType(cast<RecordDecl>(D)));
@@ -7213,4 +7250,20 @@ void CodeGenModule::moveLazyEmissionStates(CodeGenModule *NewBuilder) {
   NewBuilder->EmittedDeferredDecls = std::move(EmittedDeferredDecls);
 
   NewBuilder->ABI->MangleCtx = std::move(ABI->MangleCtx);
+}
+
+llvm::MDNode &CodeGenModule::getOrCreateNodeForUserMetadata(
+      AttachMetadataAttr *UserMetadata) {
+  llvm::MDNode *&Result = UserMetadataNode[UserMetadata];
+  if (!Result) {
+    Result = llvm::MDNode::get(getLLVMContext(), 
+      llvm::MDString::get(getLLVMContext(), UserMetadata->getUserMetadata()));
+  }
+
+  return *Result;
+}
+
+void CodeGenModule::addUserMetadataToValue(llvm::Value *Value, 
+    AttachMetadataAttr *UserMetadata) {
+  Value->addUserMetadata(getOrCreateNodeForUserMetadata(UserMetadata));
 }

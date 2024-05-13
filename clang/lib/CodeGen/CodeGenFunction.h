@@ -17,6 +17,7 @@
 #include "CGDebugInfo.h"
 #include "CGLoopInfo.h"
 #include "CGValue.h"
+#include "CGStmtAttrs.h"
 #include "CodeGenModule.h"
 #include "CodeGenPGO.h"
 #include "EHScopeStack.h"
@@ -268,6 +269,7 @@ public:
   typedef std::pair<llvm::Value *, llvm::Value *> ComplexPairTy;
   LoopInfoStack LoopStack;
   CGBuilderTy Builder;
+  StmtAttrsStack StmtAttrs;
 
   // Stores variables for which we can't generate correct lifetime markers
   // because of jumps.
@@ -315,6 +317,9 @@ public:
   void InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
                     llvm::BasicBlock *BB,
                     llvm::BasicBlock::iterator InsertPt) const;
+
+  void AttrStackPush(const Stmt *S);
+  void AttrStackPop();
 
   /// CurFuncDecl - Holds the Decl for the current outermost
   /// non-closure context.

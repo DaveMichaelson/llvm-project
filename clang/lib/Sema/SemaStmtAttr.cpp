@@ -446,6 +446,16 @@ static Attr *handleOpenCLUnrollHint(Sema &S, Stmt *St, const ParsedAttr &A,
   return ::new (S.Context) OpenCLUnrollHintAttr(S.Context, A, UnrollFactor);
 }
 
+static Attr *handleAttachMetadataAttr(Sema &S, Stmt *St, const ParsedAttr &A,
+                                      SourceRange Range) {
+  StringRef Metadata;
+  if (!S.checkStringLiteralArgumentAttr(A, 0, Metadata))
+    return nullptr;
+  Attr *attr = AttachMetadataAttr::Create(S.Context, Metadata, Range);
+  St->addAttr(S.Context, attr);
+  return attr;
+}
+
 static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const ParsedAttr &A,
                                   SourceRange Range) {
   if (A.isInvalid() || A.getKind() == ParsedAttr::IgnoredAttribute)
@@ -490,6 +500,8 @@ static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const ParsedAttr &A,
     return handleLikely(S, St, A, Range);
   case ParsedAttr::AT_Unlikely:
     return handleUnlikely(S, St, A, Range);
+  case ParsedAttr::AT_AttachMetadata:
+    return handleAttachMetadataAttr(S, St, A, Range);
   default:
     // N.B., ClangAttrEmitter.cpp emits a diagnostic helper that ensures a
     // declaration attribute is not written on a statement, but this code is

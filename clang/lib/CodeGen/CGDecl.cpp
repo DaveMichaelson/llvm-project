@@ -106,6 +106,7 @@ void CodeGenFunction::EmitDecl(const Decl &D) {
     llvm_unreachable("Declaration should not be in declstmts!");
   case Decl::Record:    // struct/union/class X;
   case Decl::CXXRecord: // struct/union/class X; [C++]
+    CGM.DeferRecordAnnotations(cast<RecordDecl>(&D));
     if (CGDebugInfo *DI = getDebugInfo())
       if (cast<RecordDecl>(D).getDefinition())
         DI->EmitAndRetainType(getContext().getRecordType(cast<RecordDecl>(&D)));

@@ -13,6 +13,8 @@
 #ifndef LLVM_CLANG_AST_STMT_H
 #define LLVM_CLANG_AST_STMT_H
 
+#include "clang/AST/APValue.h"
+#include "clang/AST/AttrIterator.h"
 #include "clang/AST/DeclGroup.h"
 #include "clang/AST/DependenceFlags.h"
 #include "clang/AST/StmtIterator.h"
@@ -1302,6 +1304,13 @@ public:
   /// \param Hash an ODRHash object which will be called where pointers would
   /// have been used in the Profile function.
   void ProcessODRHash(llvm::FoldingSetNodeID &ID, ODRHash& Hash) const;
+
+  bool hasAttrs(const ASTContext &Context) const;
+  void setAttrs(ASTContext &Context, const AttrVec& Attrs);
+  AttrVec &getAttrs(ASTContext &Context);
+  const AttrVec &getAttrs(ASTContext &Context) const;
+  void dropAttrs(ASTContext &Context);
+  void addAttr(ASTContext &Context, Attr *A);
 };
 
 /// DeclStmt - Adaptor class for mixing declarations with statements and

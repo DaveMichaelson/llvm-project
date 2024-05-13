@@ -4127,3 +4127,10 @@ def ReadOnlyPlacement : InheritableAttr {
   let Subjects = SubjectList<[Record]>;
   let Documentation = [ReadOnlyPlacementDocs];
 }
+
+def AttachMetadata : StmtAttr {
+  let Spellings = [Clang<"metadata">];
+  let Subjects = SubjectList<[Stmt], ErrorDiag, "statements">;
+  let Args = [StringArgument<"UserMetadata">];
+  let Documentation = [Undocumented];
+}

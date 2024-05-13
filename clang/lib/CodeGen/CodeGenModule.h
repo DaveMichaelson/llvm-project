@@ -423,6 +423,8 @@ private:
   /// Global annotations.
   std::vector<llvm::Constant*> Annotations;
 
+  llvm::DenseSet<const RecordDecl *> RecordAnnotations;
+
   /// Map used to get unique annotation strings.
   llvm::StringMap<llvm::Constant*> AnnotationStrings;
 
@@ -596,6 +598,8 @@ private:
   // when used with -fincremental-extensions.
   std::pair<std::unique_ptr<CodeGenFunction>, const TopLevelStmtDecl *>
       GlobalTopLevelStmtBlockInFlight;
+
+  llvm::DenseMap<AttachMetadataAttr *, llvm::MDNode *> UserMetadataNode;
 
 public:
   CodeGenModule(ASTContext &C, IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS,
@@ -1347,9 +1351,16 @@ public:
                                    const AnnotateAttr *AA,
                                    SourceLocation L);
 
+  llvm::Constant *EmitRecordAnnotateAttr(const RecordDecl *D,
+                                         const AnnotateAttr *AA);
+
   /// Add global annotations that are set on D, for the global GV. Those
   /// annotations are emitted during finalization of the LLVM code.
   void AddGlobalAnnotations(const ValueDecl *D, llvm::GlobalValue *GV);
+
+  void AddRecordAnnotations(const RecordDecl *D);
+
+  void DeferRecordAnnotations(const RecordDecl *D);
 
   bool isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
                           SourceLocation Loc) const;
@@ -1552,6 +1563,11 @@ public:
   /// essential for the incremental parsing environment like Clang Interpreter,
   /// because we'll lose all important information after each repl.
   void moveLazyEmissionStates(CodeGenModule *NewBuilder);
+
+  llvm::MDNode &getOrCreateNodeForUserMetadata(
+                              AttachMetadataAttr *UserMetadata);
+  void addUserMetadataToValue(llvm::Value *Value, 
+                              AttachMetadataAttr *UserMetadata);
 
 private:
   llvm::Constant *GetOrCreateLLVMFunction(

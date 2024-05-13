@@ -992,11 +992,8 @@ void ASTContext::cleanup() {
   }
   ASTRecordLayouts.clear();
 
-  for (llvm::DenseMap<const Decl*, AttrVec*>::iterator A = DeclAttrs.begin(),
-                                                    AEnd = DeclAttrs.end();
-       A != AEnd; ++A)
-    A->second->~AttrVec();
-  DeclAttrs.clear();
+  clearAttrs(DeclAttrs);
+  clearAttrs(StmtAttrs);
 
   for (const auto &Value : ModuleInitializers)
     Value.second->~PerModuleInitializers();
@@ -1473,6 +1470,25 @@ DiagnosticsEngine &ASTContext::getDiagnostics() const {
   return SourceMgr.getDiagnostics();
 }
 
+template<class Node>
+void ASTContext::eraseAttrs(llvm::DenseMap<const Node*, AttrVec*> attrs, const Node *N) {
+  typename llvm::DenseMap<const Node*, AttrVec*>::iterator Pos = attrs.find(N);
+  if (Pos != attrs.end()) {
+    Pos->second->~AttrVec();
+    attrs.erase(Pos);
+  }
+}
+
+template<class Node>
+void ASTContext::clearAttrs(llvm::DenseMap<const Node*, AttrVec*> attrs) {
+  for (typename llvm::DenseMap<const Node*, AttrVec*>::iterator A = attrs.begin(),
+                                                    AEnd = attrs.end();
+       A != AEnd; ++A)
+    A->second->~AttrVec();
+  attrs.clear();
+}
+
+
 AttrVec& ASTContext::getDeclAttrs(const Decl *D) {
   AttrVec *&Result = DeclAttrs[D];
   if (!Result) {
@@ -1485,11 +1501,25 @@ AttrVec& ASTContext::getDeclAttrs(const Decl *D) {
 
 /// Erase the attributes corresponding to the given declaration.
 void ASTContext::eraseDeclAttrs(const Decl *D) {
-  llvm::DenseMap<const Decl*, AttrVec*>::iterator Pos = DeclAttrs.find(D);
-  if (Pos != DeclAttrs.end()) {
-    Pos->second->~AttrVec();
-    DeclAttrs.erase(Pos);
+  eraseAttrs(DeclAttrs, D);
+}
+
+AttrVec& ASTContext::getStmtAttrs(const Stmt *S) {
+  AttrVec *&Result = StmtAttrs[S];
+  if (!Result) {
+    void *Mem = Allocate(sizeof(AttrVec));
+    Result = new (Mem) AttrVec;
   }
+
+  return *Result;
+}
+
+void ASTContext::eraseStmtAttrs(const Stmt *S) {
+  eraseAttrs(StmtAttrs, S);
+}
+
+bool ASTContext::hasStmtAttrs(const Stmt *S) const {
+  return StmtAttrs.count(S);
 }
 
 // FIXME: Remove ?
@@ -11942,6 +11972,7 @@ size_t ASTContext::getSideTableAllocatedMemory() const {
          llvm::capacity_in_bytes(ObjCImpls) +
          llvm::capacity_in_bytes(BlockVarCopyInits) +
          llvm::capacity_in_bytes(DeclAttrs) +
+         llvm::capacity_in_bytes(StmtAttrs) +
          llvm::capacity_in_bytes(TemplateOrInstantiation) +
          llvm::capacity_in_bytes(InstantiatedFromUsingDecl) +
          llvm::capacity_in_bytes(InstantiatedFromUsingShadowDecl) +

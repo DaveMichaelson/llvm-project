@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "CGOpenMPRuntime.h"
+#include "CGExprEmitter.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "ConstantEmitter.h"
@@ -41,15 +42,16 @@ static const ComplexType *getComplexType(QualType type) {
 }
 
 namespace  {
-class ComplexExprEmitter
-  : public StmtVisitor<ComplexExprEmitter, ComplexPairTy> {
-  CodeGenFunction &CGF;
+class ComplexExprEmitter : 
+  public ExprEmitter,
+  public StmtVisitor<ComplexExprEmitter, ComplexPairTy> {
   CGBuilderTy &Builder;
   bool IgnoreReal;
   bool IgnoreImag;
 public:
-  ComplexExprEmitter(CodeGenFunction &cgf, bool ir=false, bool ii=false)
-    : CGF(cgf), Builder(CGF.Builder), IgnoreReal(ir), IgnoreImag(ii) {
+  ComplexExprEmitter(CodeGenFunction &cgf, const Expr *E=nullptr, bool ir=false, bool ii=false)
+    : ExprEmitter(cgf, E), Builder(CGF.Builder), IgnoreReal(ir), 
+    IgnoreImag(ii) {
   }
 
 
@@ -994,7 +996,7 @@ ComplexPairTy ComplexExprEmitter::EmitPromoted(const Expr *E,
 
 ComplexPairTy CodeGenFunction::EmitPromotedComplexExpr(const Expr *E,
                                                        QualType DstTy) {
-  return ComplexExprEmitter(*this).EmitPromoted(E, DstTy);
+  return ComplexExprEmitter(*this, E).EmitPromoted(E, DstTy);
 }
 
 ComplexPairTy
@@ -1295,7 +1297,7 @@ ComplexPairTy CodeGenFunction::EmitComplexExpr(const Expr *E, bool IgnoreReal,
   assert(E && getComplexType(E->getType()) &&
          "Invalid complex expression to emit");
 
-  return ComplexExprEmitter(*this, IgnoreReal, IgnoreImag)
+  return ComplexExprEmitter(*this, E, IgnoreReal, IgnoreImag)
       .Visit(const_cast<Expr *>(E));
 }
 
@@ -1323,7 +1325,7 @@ ComplexPairTy CodeGenFunction::EmitLoadOfComplex(LValue src,
 LValue CodeGenFunction::EmitComplexAssignmentLValue(const BinaryOperator *E) {
   assert(E->getOpcode() == BO_Assign);
   ComplexPairTy Val; // ignored
-  LValue LVal = ComplexExprEmitter(*this).EmitBinAssignLValue(E, Val);
+  LValue LVal = ComplexExprEmitter(*this, E).EmitBinAssignLValue(E, Val);
   if (getLangOpts().OpenMP)
     CGM.getOpenMPRuntime().checkAndEmitLastprivateConditional(*this,
                                                               E->getLHS());
@@ -1348,7 +1350,7 @@ LValue CodeGenFunction::
 EmitComplexCompoundAssignmentLValue(const CompoundAssignOperator *E) {
   CompoundFunc Op = getComplexOp(E->getOpcode());
   RValue Val;
-  return ComplexExprEmitter(*this).EmitCompoundAssignLValue(E, Op, Val);
+  return ComplexExprEmitter(*this, E).EmitCompoundAssignLValue(E, Op, Val);
 }
 
 LValue CodeGenFunction::
@@ -1356,7 +1358,7 @@ EmitScalarCompoundAssignWithComplex(const CompoundAssignOperator *E,
                                     llvm::Value *&Result) {
   CompoundFunc Op = getComplexOp(E->getOpcode());
   RValue Val;
-  LValue Ret = ComplexExprEmitter(*this).EmitCompoundAssignLValue(E, Op, Val);
+  LValue Ret = ComplexExprEmitter(*this, E).EmitCompoundAssignLValue(E, Op, Val);
   Result = Val.getScalarVal();
   return Ret;
 }
