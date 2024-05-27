@@ -1539,6 +1539,14 @@ bool Value::eraseMetadata(unsigned KindID) {
   return Changed;
 }
 
+void Value::addUserMetadata(MDNode &MD) {
+  addMetadata(LLVMContext::MD_user_metadata, MD);
+}
+
+void Value::getUserMetadata(SmallVectorImpl<MDNode *> &MDs) const {
+  getMetadata(LLVMContext::MD_user_metadata, MDs);
+}
+
 void Value::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
   if (!HasMetadata)
     return;
