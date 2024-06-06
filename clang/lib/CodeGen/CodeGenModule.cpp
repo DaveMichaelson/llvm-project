@@ -2953,7 +2953,11 @@ llvm::Constant *CodeGenModule::EmitRecordAnnotateAttr(const RecordDecl *D,
                  *LineNoCst = EmitAnnotationLineNo(D->getLocation()),
                  *Args = EmitAnnotationArgs(AA);
   llvm::Constant *Fields[] = {
-    Name, AnnoRD, UnitD, LineNoCst, Args,
+    llvm::ConstantExpr::getBitCast(Name, ConstGlobalsPtrTy), 
+    llvm::ConstantExpr::getBitCast(AnnoRD, ConstGlobalsPtrTy), 
+    llvm::ConstantExpr::getBitCast(UnitD, ConstGlobalsPtrTy), 
+    LineNoCst, 
+    Args,
   };
   return llvm::ConstantStruct::getAnon(Fields);
 }
