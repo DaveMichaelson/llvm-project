@@ -7267,7 +7267,7 @@ llvm::MDNode &CodeGenModule::getOrCreateNodeForUserMetadata(
   return *Result;
 }
 
-void CodeGenModule::addUserMetadataToValue(llvm::Value *Value, 
+void CodeGenModule::addUserMetadata(llvm::Instruction *I, 
     AttachMetadataAttr *UserMetadata) {
-  Value->addUserMetadata(getOrCreateNodeForUserMetadata(UserMetadata));
+  I->addUserMetadata(getOrCreateNodeForUserMetadata(UserMetadata));
 }

@@ -1379,12 +1379,32 @@ bool Value::eraseMetadata(unsigned KindID) {
   return Changed;
 }
 
-void Value::addUserMetadata(MDNode &MD) {
-  addMetadata(LLVMContext::MD_user_metadata, MD);
+void Instruction::addUserMetadata(MDNode &MD) {
+  SmallVector<Metadata *, 4> userMetadata;
+  if (auto *Existing = getMetadata(LLVMContext::MD_user_metadata)) {
+    auto *Tuple = cast<MDTuple>(Existing);
+    for (auto &N : Tuple->operands()) {
+      userMetadata.push_back(N.get());
+    }
+  }
+
+  MDBuilder MDB(getContext());
+  userMetadata.push_back(&MD);
+  MDNode *newMD = MDTuple::get(getContext(), userMetadata);
+  setMetadata(LLVMContext::MD_user_metadata, newMD);
 }
 
-void Value::getUserMetadata(SmallVectorImpl<MDNode *> &MDs) const {
-  getMetadata(LLVMContext::MD_user_metadata, MDs);
+void Instruction::getUserMetadata(SmallVectorImpl<MDNode *> &MDs) const {
+  MDNode *Existing = getMetadata(LLVMContext::MD_user_metadata);
+  if (!Existing) {
+    return;
+  }
+
+  auto *Tuple = cast<MDTuple>(Existing);
+  for (auto &N : Tuple->operands()) {
+    assert(isa<MDNode>(N.get()));
+    MDs.push_back(cast<MDNode>(N.get()));
+  }
 }
 
 void Value::clearMetadata() {

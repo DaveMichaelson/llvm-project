@@ -1566,7 +1566,7 @@ public:
 
   llvm::MDNode &getOrCreateNodeForUserMetadata(
                               AttachMetadataAttr *UserMetadata);
-  void addUserMetadataToValue(llvm::Value *Value, 
+  void addUserMetadata(llvm::Instruction *I, 
                               AttachMetadataAttr *UserMetadata);
 
 private:

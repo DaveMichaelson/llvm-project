@@ -346,6 +346,9 @@ public:
   /// Sets the AA metadata on this instruction from the AAMDNodes structure.
   void setAAMetadata(const AAMDNodes &N);
 
+  void addUserMetadata(MDNode &MD);
+  void getUserMetadata(SmallVectorImpl<MDNode *> &MDs) const;
+
   /// Retrieve total raw weight values of a branch.
   /// Returns true on success with profile total weights filled in.
   /// Returns false if no metadata was found.

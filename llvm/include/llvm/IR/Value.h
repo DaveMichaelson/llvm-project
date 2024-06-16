@@ -808,8 +808,6 @@ public:
   /// Reverse the use-list.
   void reverseUseList();
 
-  void addUserMetadata(MDNode &MD);
-  void getUserMetadata(SmallVectorImpl<MDNode *> &MDs) const;
 
 private:
   /// Merge two lists together.

@@ -26,7 +26,7 @@ void StmtAttrsStack::clear_back() {
   stack.push_back(nullptr);
 }
 
-void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) const {
+void StmtAttrsStack::addAttrsAsMD(llvm::Instruction *I) const {
   for (typename llvm::SmallVector<const AttrVec *, 10>::const_iterator Attrs = stack.begin(),
                                                       AttrsEnd = stack.end();
       Attrs != AttrsEnd; Attrs++) {
@@ -36,13 +36,13 @@ void StmtAttrsStack::addAttrsAsMD(llvm::Value *Value) const {
       if (!attr)
         continue;
       if (attr->getKind() == attr::AttachMetadata) 
-        CGM.addUserMetadataToValue(Value, cast<AttachMetadataAttr>(attr));
+        CGM.addUserMetadata(I, cast<AttachMetadataAttr>(attr));
     }
   }
 }
 
 void StmtAttrsStack::InsertHelper(llvm::Instruction *I) const {
-  addAttrsAsMD(cast<llvm::Value>(I));
+  addAttrsAsMD(I);
 }
 
 StmtAttrsStackManager::StmtAttrsStackManager(StmtAttrsStack &Stack, 
