@@ -36,7 +36,7 @@ public:
   void push(const Stmt *S);
   void pop();
   void clear_back();
-  void addAttrsAsMD(llvm::Value *Value) const;
+  void addAttrsAsMD(llvm::Instruction *I) const;
   void InsertHelper(llvm::Instruction *I) const;
 private:
   CodeGenModule &CGM;
