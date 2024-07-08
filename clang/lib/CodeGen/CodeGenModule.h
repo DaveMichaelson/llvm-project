@@ -420,6 +420,10 @@ private:
   llvm::MapVector<GlobalDecl, StringRef> MangledDeclNames;
   llvm::StringMap<GlobalDecl, llvm::BumpPtrAllocator> Manglings;
 
+  // Store deferred function annotations so they can be emitted at the end with
+  // most up to date ValueDecl that will have all the inherited annotations.
+  llvm::DenseMap<StringRef, const ValueDecl *> DeferredAnnotations;
+
   /// Global annotations.
   std::vector<llvm::Constant*> Annotations;
 

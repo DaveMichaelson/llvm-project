@@ -444,6 +444,7 @@ void CodeGenModule::checkAliases() {
 void CodeGenModule::clear() {
   DeferredDeclsToEmit.clear();
   EmittedDeferredDecls.clear();
+  DeferredAnnotations.clear();
   RecordAnnotations.clear();
   if (OpenMPRuntime)
     OpenMPRuntime->clear();
@@ -2832,6 +2833,13 @@ void CodeGenModule::EmitVTablesOpportunistically() {
 }
 
 void CodeGenModule::EmitGlobalAnnotations() {
+  for (const auto& [MangledName, VD] : DeferredAnnotations) {
+    llvm::GlobalValue *GV = GetGlobalValue(MangledName);
+    if (GV)
+      AddGlobalAnnotations(VD, GV);
+  }
+  DeferredAnnotations.clear();
+
   for (auto RD : RecordAnnotations) {
     AddRecordAnnotations(RD);
   }
@@ -2927,8 +2935,9 @@ llvm::Constant *CodeGenModule::EmitAnnotateAttr(llvm::GlobalValue *GV,
   if (GV->getAddressSpace() !=
       getDataLayout().getDefaultGlobalsAddressSpace()) {
     GVInGlobalsAS = llvm::ConstantExpr::getAddrSpaceCast(
-        GV, GV->getValueType()->getPointerTo(
-                getDataLayout().getDefaultGlobalsAddressSpace()));
+        GV,
+        llvm::PointerType::get(
+            GV->getContext(), getDataLayout().getDefaultGlobalsAddressSpace()));
   }
 
   // Create the ConstantStruct for the global annotation.
@@ -3366,6 +3375,13 @@ void CodeGenModule::EmitGlobal(GlobalDecl GD) {
 
   // Ignore declarations, they will be emitted on their first use.
   if (const auto *FD = dyn_cast<FunctionDecl>(Global)) {
+    // Update deferred annotations with the latest declaration if the function
+    // function was already used or defined.
+    if (FD->hasAttr<AnnotateAttr>()) {
+      StringRef MangledName = getMangledName(GD);
+      if (GetGlobalValue(MangledName))
+        DeferredAnnotations[MangledName] = FD;
+    }
     // Forward declarations are emitted lazily on first use.
     if (!FD->doesThisDeclarationHaveABody()) {
       if (!FD->doesDeclarationForceExternallyVisibleDefinition())
@@ -4130,6 +4146,11 @@ llvm::Constant *CodeGenModule::GetOrCreateLLVMFunction(
   llvm::Function *F =
       llvm::Function::Create(FTy, llvm::Function::ExternalLinkage,
                              Entry ? StringRef() : MangledName, &getModule());
+
+  // Store the declaration associated with this function so it is potentially
+  // updated by further declarations or definitions and emitted at the end.
+  if (D && D->hasAttr<AnnotateAttr>())
+    DeferredAnnotations[MangledName] = cast<ValueDecl>(D);
 
   // If we already created a function with the same mangled name (but different
   // type) before, take its name and add it to the list of functions to be
@@ -5447,8 +5468,6 @@ void CodeGenModule::EmitGlobalFunctionDefinition(GlobalDecl GD,
     AddGlobalCtor(Fn, CA->getPriority());
   if (const DestructorAttr *DA = D->getAttr<DestructorAttr>())
     AddGlobalDtor(Fn, DA->getPriority(), true);
-  if (D->hasAttr<AnnotateAttr>())
-    AddGlobalAnnotations(D, Fn);
 }
 
 void CodeGenModule::EmitAliasDefinition(GlobalDecl GD) {
